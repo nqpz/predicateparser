@@ -1,0 +1,57 @@
+name:                predicateparser
+version:             0.1.0.0
+github:              "nqpz/predicateparser"
+license:             GPL-3
+author:              "Niels G. W. Serup"
+maintainer:          "ngws@metanohi.name"
+copyright:           "2022 Niels G. W. Serup"
+
+extra-source-files:
+- README.md
+
+# Metadata used when publishing your package
+synopsis:            A stupid natural language parser
+category:            Parser
+
+description:         Please see the README on GitHub at <https://github.com/nqpz/predicateparser#readme>
+
+dependencies:
+- base >= 4.7 && < 5
+- containers
+- mtl
+
+ghc-options:
+- -Wall
+- -Wcompat
+- -Widentities
+- -Wincomplete-record-updates
+- -Wincomplete-uni-patterns
+- -Wmissing-export-lists
+- -Wmissing-home-modules
+- -Wpartial-fields
+- -Wredundant-constraints
+
+library:
+  source-dirs: src
+
+executables:
+  predicateparser:
+    main:                Main.hs
+    source-dirs:         app
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - predicateparser
+
+tests:
+  predicateparser-test:
+    main:                Spec.hs
+    source-dirs:         test
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - predicateparser
