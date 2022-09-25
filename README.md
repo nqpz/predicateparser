@@ -41,6 +41,9 @@ Most.
 Run `stack install` to install.  See
 <https://docs.haskellstack.org/en/stable/install_and_upgrade/>.
 
+```sh
+echo 'my famous neighbor lives on a boat' | predicateparser
+```
 
 ## Misc. notes / TODO
 
