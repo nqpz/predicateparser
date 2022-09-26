@@ -12,14 +12,6 @@ Classic AUG (Applicative Universal Grammar):
   - `my (who (famous neighbor) (on (a boat) lives))`
   - `who (my (famous neighbor)) (on (a boat) lives)`
 
-Relation parsing result:
-- Object: neighbor
-  - my(neighbor)
-  - famous(neighbor)
-  - ((on(boat))(lives))(neighbor)
-- Object: boat
-  - a(boat)
-
 Problem: Multiple correct parses + we want to have predicates instead,
 like so:
 
