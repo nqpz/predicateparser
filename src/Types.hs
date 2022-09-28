@@ -57,18 +57,22 @@ data BaseType a where
   TPredicate :: BaseType Predicate
   TFun :: BaseType a -> BaseType b -> BaseType (a -> StackEvaluator b)
 
+instance Eq (BaseType a) where
+  x == y = case (x, y) of
+    (TObject, TObject) -> True
+    (TPredicate, TPredicate) -> True
+    (TFun x1 y1, TFun x2 y2) -> x1 == x2 && y1 == y2
+
 instance Show (BaseType a) where
   show TObject = "TObject"
   show TPredicate = "TPredicate"
   show (TFun _ _) = "TFun"
 
-data StackElement = forall a. Base (BaseType a) a
-                  | forall a b. Function (BaseType a) (BaseType b) (a -> StackEvaluator b)
+data StackElement = forall t. Base (BaseType t) t
                   | EndToken
 
 instance Show StackElement where
   show (Base t _) = "Base" ++ show t
-  show (Function from to _) = "Function " ++ show from ++ " " ++ show to
   show EndToken = "EndToken"
 
 type Stack = [StackElement]
