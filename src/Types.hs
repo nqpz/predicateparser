@@ -74,7 +74,7 @@ baseCast x y = case (x, y) of
   (TFun x1 y1, TFun x2 y2) -> do
     castX <- baseCast x2 x1
     castY <- baseCast y1 y2
-    return (\f -> \e -> castY <$> f (castX e))
+    pure $ \f e -> castY <$> f (castX e)
   _ -> Nothing
 
 instance Show StackElement where
