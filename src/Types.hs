@@ -8,9 +8,11 @@ module Types ( Object(..)
              , StackEvaluator
              , addPredicate
              , BaseType(..)
+             , baseCast
              , StackElement(..)
              , Stack
              , execEval
+             , (...)
              ) where
 
 import qualified Data.List as L
@@ -57,12 +59,6 @@ data BaseType a where
   TPredicate :: BaseType Predicate
   TFun :: BaseType a -> BaseType b -> BaseType (a -> StackEvaluator b)
 
-instance Eq (BaseType a) where
-  x == y = case (x, y) of
-    (TObject, TObject) -> True
-    (TPredicate, TPredicate) -> True
-    (TFun x1 y1, TFun x2 y2) -> x1 == x2 && y1 == y2
-
 instance Show (BaseType a) where
   show TObject = "TObject"
   show TPredicate = "TPredicate"
@@ -70,6 +66,16 @@ instance Show (BaseType a) where
 
 data StackElement = forall t. Base (BaseType t) t
                   | EndToken
+
+baseCast :: BaseType a -> BaseType b -> Maybe (a -> b)
+baseCast x y = case (x, y) of
+  (TObject, TObject) -> Just id
+  (TPredicate, TPredicate) -> Just id
+  (TFun x1 y1, TFun x2 y2) -> do
+    castX <- baseCast x2 x1
+    castY <- baseCast y1 y2
+    return (\f -> \e -> castY <$> f (castX e))
+  _ -> Nothing
 
 instance Show StackElement where
   show (Base t _) = "Base" ++ show t
@@ -79,3 +85,6 @@ type Stack = [StackElement]
 
 execEval :: Writer EvalResult () -> EvalResult
 execEval = execWriter
+
+(...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
+(f ... g) x = f . g x

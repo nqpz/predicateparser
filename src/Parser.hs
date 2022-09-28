@@ -12,9 +12,6 @@ parseObject o = Base (TFun TPredicate TObject) $ \p -> do
   addPredicate o p
   return o
 
-(...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
-(f ... g) x = f . g x
-
 parseToken :: String -> StackElement
 parseToken token = case token of
   "my" -> parsePredicate My
