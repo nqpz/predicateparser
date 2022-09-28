@@ -1,10 +1,13 @@
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE GADTs #-}
 module Types ( Object(..)
              , Predicate(..)
              , EvalResult(..)
              , formatEvalResult
              , StackEvaluator
              , addPredicate
+             , BaseType(..)
              , StackElement(..)
              , Stack
              , execEval
@@ -49,23 +52,23 @@ addPredicate _ NoPredicate = return ()
 addPredicate NoObject _ = return ()
 addPredicate o p = tell (EvalResult $ M.fromList [(o, [p])])
 
-data StackElement = Object Object
-                  | Predicate Predicate
-                  | FunctionOO (Object -> StackEvaluator Object)
-                  | FunctionPO (Predicate -> StackEvaluator Object)
-                  | FunctionPP_P ((Predicate -> Predicate) -> StackEvaluator Predicate)
-                  | FunctionO_PP (Object -> StackEvaluator (Predicate -> Predicate))
-                  | FunctionPP (Predicate -> Predicate)
+data BaseType a where
+  TObject :: BaseType Object
+  TPredicate :: BaseType Predicate
+  TFun :: BaseType a -> BaseType b -> BaseType (a -> StackEvaluator b)
+
+instance Show (BaseType a) where
+  show TObject = "TObject"
+  show TPredicate = "TPredicate"
+  show (TFun _ _) = "TFun"
+
+data StackElement = forall a. Base (BaseType a) a
+                  | forall a b. Function (BaseType a) (BaseType b) (a -> StackEvaluator b)
                   | EndToken
 
 instance Show StackElement where
-  show (Object o) = "Object" ++ show o
-  show (Predicate p) = "Predicate" ++ show p
-  show (FunctionOO _) = "FunctionOO"
-  show (FunctionPO _) = "FunctionPO"
-  show (FunctionPP_P _) = "FunctionPP_P"
-  show (FunctionO_PP _) = "FunctionO_PP"
-  show (FunctionPP _) = "FunctionPP"
+  show (Base t _) = "Base" ++ show t
+  show (Function from to _) = "Function " ++ show from ++ " " ++ show to
   show EndToken = "EndToken"
 
 type Stack = [StackElement]
