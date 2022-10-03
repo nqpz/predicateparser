@@ -50,9 +50,9 @@ formatEvalResult =
 type StackEvaluator = Writer EvalResult
 
 addPredicate :: Object -> Predicate -> StackEvaluator ()
-addPredicate _ NoPredicate = return ()
-addPredicate NoObject _ = return ()
-addPredicate o p = tell (EvalResult $ M.fromList [(o, [p])])
+addPredicate _ NoPredicate = pure ()
+addPredicate NoObject _ = pure ()
+addPredicate o p = tell $ EvalResult $ M.singleton o [p]
 
 data BaseType a where
   TObject :: BaseType Object
@@ -62,7 +62,7 @@ data BaseType a where
 instance Show (BaseType a) where
   show TObject = "TObject"
   show TPredicate = "TPredicate"
-  show (TFun _ _) = "TFun"
+  show (TFun a b) = "TFun " ++ show a ++ " " ++ show b
 
 data StackElement = forall t. Base (BaseType t) t
                   | EndToken
