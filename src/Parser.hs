@@ -13,15 +13,30 @@ parseObject o = Fun PredicateT ObjectT $ \p -> do
   addPredicate o p
   return o
 
+parsePreposition :: (Object -> Predicate -> Predicate) -> Fun
+parsePreposition preposition =
+  Fun ObjectT (FunT PredicateT PredicateT) $ return . (return ... preposition)
+
+parsePredicateModifier :: Predicate -> Fun
+parsePredicateModifier predicate =
+  Fun (FunT PredicateT PredicateT) PredicateT ($ predicate)
+
 parseToken :: String -> Fun
 parseToken token = case token of
+  "a" -> parsePredicate A
   "my" -> parsePredicate My
   "famous" -> parsePredicate Famous
+
+  "lives" -> parsePredicateModifier Lives
+  "eats" -> parsePredicateModifier Eats
+
+  "on" -> parsePreposition On
+  "in" -> parsePreposition In
+
   "neighbor" -> parseObject Neighbor
-  "lives" -> Fun (FunT PredicateT PredicateT) PredicateT ($ Lives)
-  "on" -> Fun ObjectT (FunT PredicateT PredicateT) $ return . (return ... On)
-  "a" -> parsePredicate A
   "boat" -> parseObject Boat
+  "house" -> parseObject House
+  "door" -> parseObject Door
   _ -> error ("could not parse " ++ token)
 
 parse :: String -> Stack

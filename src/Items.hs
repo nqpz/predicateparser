@@ -2,15 +2,19 @@ module Items ( Object(..)
              , Predicate(..)
              ) where
 
-data Object = Neighbor
+data Object = NoObject
+            | Neighbor
             | Boat
-            | NoObject
+            | House
+            | Door
   deriving (Eq, Ord, Show)
 
-data Predicate = My
-               | Famous
+data Predicate = NoPredicate
                | A
-               | On Object Predicate
+               | My
+               | Famous
                | Lives
-               | NoPredicate
+               | Eats
+               | On Object Predicate
+               | In Object Predicate
   deriving (Eq, Show)
