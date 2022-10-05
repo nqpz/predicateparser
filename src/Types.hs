@@ -48,7 +48,15 @@ data T a where
   PredicateT :: T Predicate
   FunT :: T a -> T b -> T (a -> StackEvaluator b)
 
+instance Show (T a) where
+  show ObjectT = "ObjectT"
+  show PredicateT = "PredicateT"
+  show (FunT t u) = "FunT (" ++ show t ++ ") (" ++ show u ++ ") <function>"
+
 data Fun = forall a b. Fun (T a) (T b) (a -> StackEvaluator b)
+
+instance Show Fun where
+  show (Fun t u _) = "Fun (" ++ show t ++ ") (" ++ show u ++ ") <function>"
 
 type Stack = [Fun]
 

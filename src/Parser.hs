@@ -15,7 +15,7 @@ parseObject o = Fun PredicateT ObjectT $ \p -> do
 
 parsePreposition :: (Object -> Predicate -> Predicate) -> Fun
 parsePreposition preposition =
-  Fun ObjectT (FunT PredicateT PredicateT) $ return . (return ... preposition)
+  Fun ObjectT (FunT PredicateT PredicateT) $ pure . (pure ... preposition)
 
 parsePredicateModifier :: Predicate -> Fun
 parsePredicateModifier predicate =

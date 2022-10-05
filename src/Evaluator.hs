@@ -27,8 +27,8 @@ evalFun = \case
     execEval $ f NoPredicate
   Fun (FunT PredicateT PredicateT) _ f ->
     execEval $ f (pure . id)
-  _ ->
-    undefined
+  fun@(Fun {}) ->
+    error ("could not handle function " ++ show fun)
 
 evalStack :: Stack -> EvalResult
 evalStack = evalFun . fromMaybe (error "could not compose stack") . composeStack
