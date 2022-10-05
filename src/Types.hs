@@ -5,9 +5,6 @@ module Types ( EvalResult(..)
              , formatEvalResult
              , StackEvaluator
              , addPredicate
-             -- , BaseType(..)
-             -- , baseCast
-             -- , StackElement(..)
              , Stack
              , T(..)
              , castT
@@ -43,11 +40,6 @@ addPredicate _ NoPredicate = pure ()
 addPredicate NoObject _ = pure ()
 addPredicate o p = tell $ EvalResult $ M.singleton o [p]
 
--- data BaseType a where
---   TObject :: BaseType Object
---   TPredicate :: BaseType Predicate
---   TFun :: BaseType t -> BaseType u -> BaseType (t -> StackEvaluator u)
-
 data T a where
   ObjectT :: T Object
   PredicateT :: T Predicate
@@ -64,30 +56,6 @@ castT x y = case (x, y) of
     castY <- castT y1 y2
     pure $ \f e -> castY <$> f (castX e)
   _ -> Nothing
-
--- instance Show (BaseType a) where
---   show TObject = "TObject"
---   show TPredicate = "TPredicate"
---   show (TFun t u) = "TFun " ++ show t ++ " " ++ show u
-
--- data StackElement = forall t. Base (BaseType t) t
---                   | EndToken
-
--- baseCast :: BaseType a -> BaseType b -> Maybe (a -> b)
--- baseCast x y = case (x, y) of
---   (TObject, TObject) -> Just id
---   (TPredicate, TPredicate) -> Just id
---   (TFun x1 y1, TFun x2 y2) -> do
---     castX <- baseCast x2 x1
---     castY <- baseCast y1 y2
---     pure $ \f e -> castY <$> f (castX e)
---   _ -> Nothing
-
--- instance Show StackElement where
---   show (Base t _) = "Base" ++ show t
---   show EndToken = "EndToken"
-
--- type Stack = [StackElement]
 
 type Stack = [Fun]
 
