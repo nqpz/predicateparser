@@ -27,13 +27,16 @@ instance Semigroup EvalResult where
 instance Monoid EvalResult where
   mempty = EvalResult M.empty
 
+type StackEvaluator = Writer EvalResult
+
+execEval :: StackEvaluator a -> EvalResult
+execEval = execWriter
+
 formatEvalResult :: EvalResult -> String
 formatEvalResult =
   (++ "\n") . L.intercalate "\n"
   . map (\(o, ps) -> show o ++ ": " ++ L.intercalate ", " (map show ps))
   . M.toList . fromEvalResult
-
-type StackEvaluator = Writer EvalResult
 
 addPredicate :: Object -> Predicate -> StackEvaluator ()
 addPredicate _ NoPredicate = pure ()
@@ -47,6 +50,8 @@ data T a where
 
 data Fun = forall a b. Fun (T a) (T b) (a -> StackEvaluator b)
 
+type Stack = [Fun]
+
 castT :: T a -> T b -> Maybe (a -> b)
 castT x y = case (x, y) of
   (ObjectT, ObjectT) -> Just id
@@ -56,11 +61,6 @@ castT x y = case (x, y) of
     castY <- castT y1 y2
     pure $ \f e -> castY <$> f (castX e)
   _ -> Nothing
-
-type Stack = [Fun]
-
-execEval :: Writer EvalResult a -> EvalResult
-execEval = execWriter
 
 (...) :: (c -> d) -> (a -> b -> c) -> a -> b -> d
 (f ... g) x = f . g x

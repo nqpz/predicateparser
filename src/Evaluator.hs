@@ -10,7 +10,7 @@ import Data.Maybe (fromMaybe)
 compose :: Fun -> Fun -> Maybe Fun
 compose (Fun t2 r2 f2) (Fun t1 r1 f1) = do
   cast <- castT r1 t2
-  return $ Fun t1 r2 (\prev -> f1 prev >>= pure . cast >>= f2)
+  return $ Fun t1 r2 $ \prev -> pure prev >>= f1 >>= pure . cast >>= f2
 
 composeStack :: Stack -> Maybe Fun
 composeStack funs = do
@@ -31,4 +31,4 @@ evalFun = \case
     undefined
 
 evalStack :: Stack -> EvalResult
-evalStack = evalFun . fromMaybe (error "could not compose") . composeStack
+evalStack = evalFun . fromMaybe (error "could not compose stack") . composeStack
