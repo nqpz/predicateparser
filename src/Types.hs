@@ -9,6 +9,7 @@ module Types ( EvalResult(..)
              , T(..)
              , castT
              , Fun(..)
+             , FunGroup(..)
              , execEval
              , (...)
              ) where
@@ -58,7 +59,11 @@ data Fun = forall a b. Fun (T a) (T b) (a -> StackEvaluator b)
 instance Show Fun where
   show (Fun t u _) = "Fun (" ++ show t ++ ") (" ++ show u ++ ") <function>"
 
-type Stack = [Fun]
+data FunGroup = SingleFun Fun
+              | MultiFun [FunGroup]
+  deriving (Show)
+
+type Stack = [FunGroup]
 
 castT :: T a -> T b -> Maybe (a -> b)
 castT x y = case (x, y) of

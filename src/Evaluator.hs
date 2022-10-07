@@ -12,19 +12,25 @@ compose (Fun t2 r2 f2) (Fun t1 r1 f1) = do
   cast <- castT r1 t2
   return $ Fun t1 r2 $ \prev -> pure prev >>= f1 >>= pure . cast >>= f2
 
-composeStack :: Stack -> Maybe Fun
-composeStack funs = do
+composeFuns :: [Fun] -> Maybe Fun
+composeFuns funs = do
   (first, rest) <- case funs of
     first : rest -> Just (first, rest)
     _ -> Nothing
   foldM compose first rest
 
+composeStack :: Stack -> Maybe Fun
+composeStack stack = composeFuns =<< mapM collapse stack
+  where collapse :: FunGroup -> Maybe Fun
+        collapse (SingleFun f) = pure f
+        collapse (MultiFun fs) = composeStack fs
+
 evalFun :: Fun -> EvalResult
 evalFun = \case
   Fun ObjectT _ f ->
     execEval $ f NoObject
-  Fun PredicateT _ f ->
-    execEval $ f NoPredicate
+  Fun (FunT ObjectT ObjectT) _ f ->
+    execEval $ f (pure . id)
   Fun (FunT PredicateT PredicateT) _ f ->
     execEval $ f (pure . id)
   fun@(Fun {}) ->
