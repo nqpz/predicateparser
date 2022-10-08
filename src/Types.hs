@@ -4,14 +4,15 @@
 module Types ( EvalResult(..)
              , formatEvalResult
              , StackEvaluator
+             , execStackEvaluator
              , addPredicate
-             , Stack
              , T(..)
              , castT
              , Fun(..)
              , Funs
              , FunsGroup(..)
-             , execEval
+             , Stack
+             , StackFuns
              , (...)
              ) where
 
@@ -31,8 +32,8 @@ instance Monoid EvalResult where
 
 type StackEvaluator = Writer EvalResult
 
-execEval :: StackEvaluator a -> EvalResult
-execEval = execWriter
+execStackEvaluator :: StackEvaluator () -> EvalResult
+execStackEvaluator = execWriter
 
 formatEvalResult :: EvalResult -> String
 formatEvalResult =
@@ -43,40 +44,34 @@ formatEvalResult =
 addPredicate :: Object -> Predicate -> StackEvaluator ()
 addPredicate o p = tell $ EvalResult $ M.singleton o [p]
 
-data T a where
-  UnitT :: T ()
-  ObjectT :: T Object
-  PredicateT :: T Predicate
-  FunT :: T a -> T b -> T (a -> StackEvaluator b)
+data T f a where
+  UnitT :: T f ()
+  ObjectT :: T f Object
+  PredicateT :: T f Predicate
+  FunT :: T f a -> T f b -> T f (a -> f b)
 
--- instance Show (T a) where
---   show ObjectT = "ObjectT"
---   show PredicateT = "PredicateT"
---   show (FunT t u) = "FunT (" ++ show t ++ ") (" ++ show u ++ ") <function>"
-
-instance Show (T a) where
+instance Show (T f a) where
   show UnitT = "()"
   show ObjectT = "O"
   show PredicateT = "P"
   show (FunT t u) = "(" ++ show t ++ " -> " ++ show u ++ ")"
 
-data Fun = forall a b. Fun (T a) (T b) (a -> StackEvaluator b)
+data Fun f = forall a b. Fun (T f a) (T f b) (a -> f b)
 
-type Funs = [Fun]
-
--- instance Show Fun where
---   show (Fun t u _) = "Fun (" ++ show t ++ ") (" ++ show u ++ ") <function>"
-
-instance Show Fun where
+instance Show (Fun f) where
   show (Fun t u _) = "(" ++ show t ++ " -> " ++ show u ++ ")"
 
-data FunsGroup = SingleFuns Funs
-               | MultiFuns [FunsGroup]
+type Funs f = [Fun f]
+
+data FunsGroup f = SingleFuns (Funs f)
+               | MultiFuns [FunsGroup f]
   deriving (Show)
 
-type Stack = [FunsGroup]
+type StackFuns = Funs StackEvaluator
 
-castT :: T a -> T b -> Maybe (a -> b)
+type Stack = [FunsGroup StackEvaluator]
+
+castT :: Functor f => T f a -> T f b -> Maybe (a -> b)
 castT x y = case (x, y) of
   (UnitT, UnitT) -> Just id
   (ObjectT, ObjectT) -> Just id

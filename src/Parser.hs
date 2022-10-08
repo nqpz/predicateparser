@@ -9,18 +9,18 @@ injectAddPredicate p o = do
   addPredicate o p
   return o
 
-parseObject :: Object -> Funs
+parseObject :: Object -> StackFuns
 parseObject o = [ Fun (FunT ObjectT ObjectT) ObjectT $ ($ o)
                 , Fun UnitT ObjectT $ \() -> pure o
                 ]
 
-parseAdjective :: Predicate -> Funs
+parseAdjective :: Predicate -> StackFuns
 parseAdjective p = [Fun ObjectT ObjectT $ injectAddPredicate p]
 
-parsePreposition :: (Object -> Predicate -> Predicate) -> Funs
+parsePreposition :: (Object -> Predicate -> Predicate) -> StackFuns
 parsePreposition preposition = [Fun ObjectT (FunT PredicateT PredicateT) $ pure . (pure ... preposition)]
 
-parseModifier :: Predicate -> Funs
+parseModifier :: Predicate -> StackFuns
 parseModifier predicate =
   [ Fun (FunT PredicateT PredicateT) (FunT ObjectT ObjectT)
     $ \f -> injectAddPredicate <$> f predicate
@@ -30,7 +30,7 @@ parseModifier predicate =
       return $ \g -> injectAddPredicate <$> g p
   ]
 
-parseToken :: String -> Funs
+parseToken :: String -> StackFuns
 parseToken = \case
   "neighbor" -> parseObject Neighbor
   "boat" -> parseObject Boat

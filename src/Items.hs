@@ -16,4 +16,4 @@ data Predicate = A
                | Eats
                | On Object Predicate
                | In Object Predicate
-  deriving (Eq, Show)
+  deriving (Eq, Ord, Show)

@@ -1,57 +1,53 @@
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 module Evaluator (evalStack) where
 
 import Types
+import Control.Monad (void)
 import Data.Maybe (mapMaybe)
-import Debug.Trace (trace)
 
-trace' :: String -> a -> a
-trace' _ x = x
-
-compose :: Funs -> Funs -> Funs
+compose :: forall m. Monad m => Funs m -> Funs m -> Funs m
 compose f2s f1s =
   let combs = do
-        u <- trace' (show f2s) f2s
-        t <- trace' (show f1s) f1s
+        u <- f2s
+        t <- f1s
         return (u, t)
       both = mapMaybe check combs ++ mapMaybe checkUnit combs
   in if null both
      then error ("no composition possible:\n" ++ show f2s ++ "\n" ++ show f1s ++ "\n\n")
-     else trace' (show both) both
-  where check :: (Fun, Fun) -> Maybe Fun
+     else both
+  where check :: (Fun m, Fun m) -> Maybe (Fun m)
         check (Fun t2 r2 f2, Fun t1 r1 f1) = do
           cast <- castT r1 t2
-          return $ Fun t1 r2 $ \prev -> pure prev >>= f1 >>= pure . cast >>= f2
-        checkUnit :: (Fun, Fun) -> Maybe Fun
-        checkUnit (Fun UnitT (FunT t2 r2) f2, fun1) = check (Fun t2 r2 f2', fun1)
-          where f2' x = do
-                  g <- f2 ()
-                  g x
+          return $ Fun t1 r2 $ \prev -> return prev >>= f1 >>= return . cast >>= f2
+
+        checkUnit :: (Fun m, Fun m) -> Maybe (Fun m)
+        checkUnit (Fun UnitT (FunT t2 r2) f2, fun1) = check (Fun t2 r2 (\x -> f2 () >>= ($ x)), fun1)
         checkUnit _ = Nothing
 
-composeStack :: Stack -> Funs
-composeStack = foldr1 compose . map collapse
-  where collapse :: FunsGroup -> Funs
+composeFunsGroups :: forall m. Monad m => [FunsGroup m] -> Funs m
+composeFunsGroups = foldr1 compose . map collapse
+  where collapse :: FunsGroup m -> Funs m
         collapse (SingleFuns f) = f
-        collapse (MultiFuns fs) = composeStack fs
+        collapse (MultiFuns fs) = composeFunsGroups fs
 
-evalFun :: Funs -> EvalResult
-evalFun funs = trace' (show funs) $ case mapMaybe eval' funs of
+evalFun :: forall f. Applicative f => Funs f -> f ()
+evalFun funs = case mapMaybe eval' funs of
   [] -> error "no functions"
   ress -> head ress
-  where eval' :: Fun -> Maybe EvalResult
+  where eval' :: Fun f -> Maybe (f ())
         eval' = \case
           Fun UnitT _ f ->
-            Just $ execEval $ f ()
+            ret $ f ()
           Fun (FunT ObjectT ObjectT) _ f ->
-            Just $ execEval $ f (pure . id)
+            ret $ f (pure . id)
           Fun (FunT PredicateT PredicateT) _ f ->
-            Just $ execEval $ f (pure . id)
+            ret $ f (pure . id)
           Fun {} ->
             Nothing
-          -- fun@(Fun {}) ->
-          --   error ("could not handle function " ++ show fun)
+        ret :: f a -> Maybe (f ())
+        ret = Just . void
 
 evalStack :: Stack -> EvalResult
-evalStack = evalFun . composeStack
+evalStack = execStackEvaluator . evalFun . composeFunsGroups
