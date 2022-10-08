@@ -1,7 +1,6 @@
 {-# LANGUAGE LambdaCase #-}
 module Parser (parse) where
 
-import qualified Data.List as L
 import Items
 import Types
 
@@ -10,54 +9,55 @@ injectAddPredicate p o = do
   addPredicate o p
   return o
 
-parseObject :: Object -> Fun
-parseObject o = Fun (FunT ObjectT ObjectT) ObjectT $ ($ o)
+parseObject :: Object -> Funs
+parseObject o = [ Fun (FunT ObjectT ObjectT) ObjectT $ ($ o)
+                , Fun UnitT ObjectT $ \() -> pure o
+                ]
 
-parsePredicate :: Predicate -> Fun
-parsePredicate = Fun ObjectT ObjectT . injectAddPredicate
+parseAdjective :: Predicate -> Funs
+parseAdjective p = [Fun ObjectT ObjectT $ injectAddPredicate p]
 
-parsePreposition :: (Object -> Predicate -> Predicate) -> Fun
-parsePreposition preposition =
-  Fun ObjectT (FunT PredicateT PredicateT) $ pure . (pure ... preposition)
+parsePreposition :: (Object -> Predicate -> Predicate) -> Funs
+parsePreposition preposition = [Fun ObjectT (FunT PredicateT PredicateT) $ pure . (pure ... preposition)]
 
-parsePredicateModifier :: Predicate -> Fun
-parsePredicateModifier predicate =
-  Fun (FunT PredicateT PredicateT) (FunT ObjectT ObjectT)
-  $ \f -> injectAddPredicate <$> f predicate
+parseModifier :: Predicate -> Funs
+parseModifier predicate =
+  [ Fun (FunT PredicateT PredicateT) (FunT ObjectT ObjectT)
+    $ \f -> injectAddPredicate <$> f predicate
 
--- parsePredicateModifier' :: Predicate -> Fun
--- parsePredicateModifier' predicate =
---   Fun (FunT PredicateT PredicateT) (FunT (FunT PredicateT PredicateT) (FunT ObjectT ObjectT)) $ \f -> do
---   p <- f predicate
---   return $ \g -> injectAddPredicate <$> g p
+  , Fun (FunT PredicateT PredicateT) (FunT (FunT PredicateT PredicateT) (FunT ObjectT ObjectT)) $ \f -> do
+      p <- f predicate
+      return $ \g -> injectAddPredicate <$> g p
+  ]
 
-parseToken :: String -> Fun
+parseToken :: String -> Funs
 parseToken = \case
   "neighbor" -> parseObject Neighbor
   "boat" -> parseObject Boat
   "house" -> parseObject House
   "door" -> parseObject Door
 
-  "a" -> parsePredicate A
-  "my" -> parsePredicate My
-  "famous" -> parsePredicate Famous
+  "a" -> parseAdjective A
+  "the" -> parseAdjective The
+  "my" -> parseAdjective My
+  "famous" -> parseAdjective Famous
 
   "on" -> parsePreposition On
   "in" -> parsePreposition In
 
-  "lives" -> parsePredicateModifier Lives
-  "eats" -> parsePredicateModifier Eats
+  "lives" -> parseModifier Lives
+  "eats" -> parseModifier Eats
 
   token -> error ("could not parse " ++ token)
 
 parse :: String -> Stack
 parse "" = []
 parse s =
-  let (before, s') = L.span (/= '[') s
-      (middle, after) = L.span (/= ']') (L.dropWhile (== '[') s')
-      a = map SingleFun (map parseToken (words before))
+  let (before, s') =span (/= '[') s
+      (middle, after) = span (/= ']') (dropWhile (== '[') s')
+      a = map SingleFuns (map parseToken (words before))
       b = parse middle
-      c = parse (L.dropWhile (== ']') after)
+      c = parse (dropWhile (== ']') after)
   in a
-     ++ (if L.null b then [] else [MultiFun b])
+     ++ (if null b then [] else [MultiFuns b])
      ++ c

@@ -9,7 +9,8 @@ module Types ( EvalResult(..)
              , T(..)
              , castT
              , Fun(..)
-             , FunGroup(..)
+             , Funs
+             , FunsGroup(..)
              , execEval
              , (...)
              ) where
@@ -40,33 +41,44 @@ formatEvalResult =
   . M.toList . fromEvalResult
 
 addPredicate :: Object -> Predicate -> StackEvaluator ()
-addPredicate _ NoPredicate = pure ()
-addPredicate NoObject _ = pure ()
 addPredicate o p = tell $ EvalResult $ M.singleton o [p]
 
 data T a where
+  UnitT :: T ()
   ObjectT :: T Object
   PredicateT :: T Predicate
   FunT :: T a -> T b -> T (a -> StackEvaluator b)
 
+-- instance Show (T a) where
+--   show ObjectT = "ObjectT"
+--   show PredicateT = "PredicateT"
+--   show (FunT t u) = "FunT (" ++ show t ++ ") (" ++ show u ++ ") <function>"
+
 instance Show (T a) where
-  show ObjectT = "ObjectT"
-  show PredicateT = "PredicateT"
-  show (FunT t u) = "FunT (" ++ show t ++ ") (" ++ show u ++ ") <function>"
+  show UnitT = "()"
+  show ObjectT = "O"
+  show PredicateT = "P"
+  show (FunT t u) = "(" ++ show t ++ " -> " ++ show u ++ ")"
 
 data Fun = forall a b. Fun (T a) (T b) (a -> StackEvaluator b)
 
-instance Show Fun where
-  show (Fun t u _) = "Fun (" ++ show t ++ ") (" ++ show u ++ ") <function>"
+type Funs = [Fun]
 
-data FunGroup = SingleFun Fun
-              | MultiFun [FunGroup]
+-- instance Show Fun where
+--   show (Fun t u _) = "Fun (" ++ show t ++ ") (" ++ show u ++ ") <function>"
+
+instance Show Fun where
+  show (Fun t u _) = "(" ++ show t ++ " -> " ++ show u ++ ")"
+
+data FunsGroup = SingleFuns Funs
+               | MultiFuns [FunsGroup]
   deriving (Show)
 
-type Stack = [FunGroup]
+type Stack = [FunsGroup]
 
 castT :: T a -> T b -> Maybe (a -> b)
 castT x y = case (x, y) of
+  (UnitT, UnitT) -> Just id
   (ObjectT, ObjectT) -> Just id
   (PredicateT, PredicateT) -> Just id
   (FunT x1 y1, FunT x2 y2) -> do

@@ -22,3 +22,10 @@ main = do
     [ (Neighbor, [On Boat Lives, Famous, My])
     , (Boat, [A])
     ]
+
+  test
+    "my door [lives in a house] on the boat"
+    [ (Boat, [The])
+    , (House, [A])
+    , (Door, [On Boat (In House Lives),My])
+    ]

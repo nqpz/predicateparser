@@ -2,39 +2,56 @@
 {-# LANGUAGE GADTs #-}
 module Evaluator (evalStack) where
 
-import Items
 import Types
-import Control.Monad (foldM)
-import Data.Maybe (fromMaybe)
+import Data.Maybe (mapMaybe)
+import Debug.Trace (trace)
 
-compose :: Fun -> Fun -> Maybe Fun
-compose (Fun t2 r2 f2) (Fun t1 r1 f1) = do
-  cast <- castT r1 t2
-  return $ Fun t1 r2 $ \prev -> pure prev >>= f1 >>= pure . cast >>= f2
+trace' :: String -> a -> a
+trace' _ x = x
 
-composeFuns :: [Fun] -> Maybe Fun
-composeFuns funs = do
-  (first, rest) <- case funs of
-    first : rest -> Just (first, rest)
-    _ -> Nothing
-  foldM compose first rest
+compose :: Funs -> Funs -> Funs
+compose f2s f1s =
+  let combs = do
+        u <- trace' (show f2s) f2s
+        t <- trace' (show f1s) f1s
+        return (u, t)
+      both = mapMaybe check combs ++ mapMaybe checkUnit combs
+  in if null both
+     then error ("no composition possible:\n" ++ show f2s ++ "\n" ++ show f1s ++ "\n\n")
+     else trace' (show both) both
+  where check :: (Fun, Fun) -> Maybe Fun
+        check (Fun t2 r2 f2, Fun t1 r1 f1) = do
+          cast <- castT r1 t2
+          return $ Fun t1 r2 $ \prev -> pure prev >>= f1 >>= pure . cast >>= f2
+        checkUnit :: (Fun, Fun) -> Maybe Fun
+        checkUnit (Fun UnitT (FunT t2 r2) f2, fun1) = check (Fun t2 r2 f2', fun1)
+          where f2' x = do
+                  g <- f2 ()
+                  g x
+        checkUnit _ = Nothing
 
-composeStack :: Stack -> Maybe Fun
-composeStack stack = composeFuns =<< mapM collapse stack
-  where collapse :: FunGroup -> Maybe Fun
-        collapse (SingleFun f) = pure f
-        collapse (MultiFun fs) = composeStack fs
+composeStack :: Stack -> Funs
+composeStack = foldr1 compose . map collapse
+  where collapse :: FunsGroup -> Funs
+        collapse (SingleFuns f) = f
+        collapse (MultiFuns fs) = composeStack fs
 
-evalFun :: Fun -> EvalResult
-evalFun = \case
-  Fun ObjectT _ f ->
-    execEval $ f NoObject
-  Fun (FunT ObjectT ObjectT) _ f ->
-    execEval $ f (pure . id)
-  Fun (FunT PredicateT PredicateT) _ f ->
-    execEval $ f (pure . id)
-  fun@(Fun {}) ->
-    error ("could not handle function " ++ show fun)
+evalFun :: Funs -> EvalResult
+evalFun funs = trace' (show funs) $ case mapMaybe eval' funs of
+  [] -> error "no functions"
+  ress -> head ress
+  where eval' :: Fun -> Maybe EvalResult
+        eval' = \case
+          Fun UnitT _ f ->
+            Just $ execEval $ f ()
+          Fun (FunT ObjectT ObjectT) _ f ->
+            Just $ execEval $ f (pure . id)
+          Fun (FunT PredicateT PredicateT) _ f ->
+            Just $ execEval $ f (pure . id)
+          Fun {} ->
+            Nothing
+          -- fun@(Fun {}) ->
+          --   error ("could not handle function " ++ show fun)
 
 evalStack :: Stack -> EvalResult
-evalStack = evalFun . fromMaybe (error "could not compose stack") . composeStack
+evalStack = evalFun . composeStack
