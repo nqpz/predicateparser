@@ -3,6 +3,9 @@ module Parser (parse) where
 
 import Items
 import Types
+import Data.Char (isAlpha)
+import qualified Text.ParserCombinators.ReadP as P
+import qualified Text.Parser.Token as T
 
 injectAddPredicate :: Predicate -> Object -> StackEvaluator Object
 injectAddPredicate p o = do
@@ -51,13 +54,14 @@ parseToken = \case
   token -> error ("could not parse " ++ token)
 
 parse :: String -> Stack
-parse "" = []
-parse s =
-  let (before, s') =span (/= '[') s
-      (middle, after) = span (/= ']') (dropWhile (== '[') s')
-      a = map SingleFuns (map parseToken (words before))
-      b = parse middle
-      c = parse (dropWhile (== ']') after)
-  in a
-     ++ (if null b then [] else [MultiFuns b])
-     ++ c
+parse s = case P.readP_to_S (parser <* P.eof) s of
+  [(r, "")] -> r
+  _ -> error ("could not parse '" ++ s ++ "'")
+
+parser :: P.ReadP Stack
+parser = P.many1 (token P.+++ nested)
+  where token :: P.ReadP (FunsGroup StackEvaluator)
+        token = (SingleFuns . parseToken) <$> P.munch1 isAlpha <* P.skipSpaces
+
+        nested :: P.ReadP (FunsGroup StackEvaluator)
+        nested = MultiFuns <$> T.brackets parser

@@ -64,7 +64,7 @@ instance Show (Fun f) where
 type Funs f = [Fun f]
 
 data FunsGroup f = SingleFuns (Funs f)
-               | MultiFuns [FunsGroup f]
+                 | MultiFuns [FunsGroup f]
   deriving (Show)
 
 type StackFuns = Funs StackEvaluator
